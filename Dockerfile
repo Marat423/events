@@ -4,8 +4,8 @@ RUN addgroup --system --gid 1000 appuser && \
     adduser --system --uid 1000 --ingroup appuser appuser
 
 WORKDIR /app
-COPY --chown=appuser:appuser myapp/app.py .
+COPY --chown=appuser:appuser src/main.py .
 
 USER appuser
 
-CMD ["python", "app.py"]
+CMD ["python", "main.py"]
