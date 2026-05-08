@@ -1,8 +1,7 @@
-from datetime import datetime
-from typing import List, Optional
+from pydantic import BaseModel, ConfigDict
 from uuid import UUID
-
-from pydantic import BaseModel, ConfigDict  # убедитесь, что ConfigDict импортирован
+from datetime import datetime
+from typing import Optional, List
 
 
 class PlaceSchema(BaseModel):
@@ -10,8 +9,10 @@ class PlaceSchema(BaseModel):
     name: str
     city: str
     address: str
-    seats_pattern: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
+
+class PlaceDetailSchema(PlaceSchema):
+    seats_pattern: Optional[str] = None
 
 
 class EventSchema(BaseModel):
@@ -24,6 +25,8 @@ class EventSchema(BaseModel):
     number_of_visitors: int
     model_config = ConfigDict(from_attributes=True)
 
+class EventDetailSchema(EventSchema):
+    place: PlaceDetailSchema
 
 class EventListResponse(BaseModel):
     count: int
@@ -32,41 +35,23 @@ class EventListResponse(BaseModel):
     results: List[EventSchema]
 
 
-class SeatSchema(BaseModel):
-    id: UUID
+class SeatsResponse(BaseModel):
     event_id: UUID
-    row: str
-    number: int
-    is_available: bool
-
-    class Config:
-        from_attributes = True
+    available_seats: List[str]
 
 
 class TicketCreateRequest(BaseModel):
+    event_id: UUID
     first_name: str
     last_name: str
-    seat: str
     email: str
-
+    seat: str
 
 class TicketResponse(BaseModel):
     ticket_id: UUID
 
-
-class TicketSchema(BaseModel):
-    id: UUID
-    event_id: UUID
-    seat_id: UUID
-    user_id: str
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class CancelRegistrationRequest(BaseModel):
-    ticket_id: UUID
+class CancelTicketResponse(BaseModel):
+    success: bool
 
 
 class SourceCreate(BaseModel):

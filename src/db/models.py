@@ -62,3 +62,11 @@ class Source(Base):
     base_url = Column(String(500), nullable=False)
     api_key = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
+
+
+class SyncState(Base):
+    __tablename__ = "sync_state"
+    id = Column(Integer, primary_key=True, default=1)
+    last_sync_time = Column(DateTime(timezone=True), nullable=True)
+    last_changed_at = Column(DateTime(timezone=True), nullable=True)
+    sync_status = Column(String, default="pending")

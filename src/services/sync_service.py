@@ -124,9 +124,9 @@ class SyncService:
 
         return event
 
-    async def sync_events_from_provider(self, changed_at: date, api_key: str) -> int:
+    async def sync_events_from_provider(self, changed_at: date) -> int:
         count = 0
-        async for item in self.provider.fetch_all_events(changed_at, api_key):
+        async for item in self.provider.fetch_all_events(changed_at):
             place = await self.sync_place(item["place"])
             seats_pattern = item["place"].get("seats_pattern", "")
             await self.sync_event(item, place.id, seats_pattern)
