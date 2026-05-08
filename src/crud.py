@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.db import models
 from src.db.models import Event
@@ -22,8 +23,13 @@ async def get_place(db: AsyncSession, place_id: str) -> models.Place | None:
     return result.scalar_one_or_none()
 
 
+
 async def get_event(db: AsyncSession, event_id: str) -> models.Event | None:
-    result = await db.execute(select(models.Event).where(models.Event.id == event_id))
+    result = await db.execute(
+        select(models.Event)
+        .options(selectinload(models.Event.place))
+        .where(models.Event.id == event_id)
+    )
     return result.scalar_one_or_none()
 
 

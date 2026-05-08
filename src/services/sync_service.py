@@ -1,5 +1,5 @@
 from datetime import date, datetime, timezone
-from uuid import UUID  # добавьте этот импорт
+from uuid import UUID
 
 from fastapi import APIRouter
 from sqlalchemy import select

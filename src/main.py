@@ -1,15 +1,21 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, BackgroundTasks
-from datetime import datetime, timedelta
+from fastapi import FastAPI, BackgroundTasks, Depends
+from datetime import datetime, timedelta, date
 import uuid
 import logging
 
 from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.database import engine, Base, AsyncSessionLocal
-from src.route import events, tickets
+from src.db.database import engine, Base, AsyncSessionLocal, get_db
+from src.route import events, tickets, sync_provider
 from src.config import settings
 from src.db import models
+from src.services.provider_client import ProviderClient
+from src.services.sync_service import SyncService
+
+
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -63,9 +69,23 @@ async def health():
     return {"status": "ok"}
 
 @app.post("/api/sync/trigger")
-async def manual_sync(background_tasks: BackgroundTasks):
+async def manual_sync(db: AsyncSession = Depends(get_db)):
+    client = ProviderClient(
+        base_url=settings.CLIENT_HOST.rstrip("/"),
+        api_key=settings.EVENTS_API_KEY,
+    )
 
-    return {"message": "Sync not implemented in this version"}
+    service = SyncService(db, client)
+
+    count = await service.sync_events_from_provider(
+        changed_at=date(1970, 1, 1)
+    )
+
+    return {
+        "status": "synced",
+        "count": count,
+    }
 
 app.include_router(events.router, prefix="/api")
 app.include_router(tickets.router, prefix="/api")
+app.include_router(sync_provider.router, prefix="/api")
