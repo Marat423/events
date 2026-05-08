@@ -16,7 +16,7 @@ async def register_ticket(
     payload: TicketCreateRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    # 1. Локальная валидация
+
     event = await crud.get_event(db, str(payload.event_id))
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -36,7 +36,7 @@ async def register_ticket(
     if not seat.is_available:
         raise HTTPException(status_code=409, detail="Seat already taken")
 
-    # 2. Запрос к Events Provider API
+
     async with httpx.AsyncClient(timeout=30.0) as client:
         external_resp = await client.post(
             f"{settings.CLIENT_HOST}/api/events/{payload.event_id}/register/",
@@ -55,7 +55,7 @@ async def register_ticket(
         if not ticket_id_str:
             raise HTTPException(status_code=502, detail="External API did not return ticket_id")
 
-    # 3. Локальное сохранение билета
+
     ticket_data = {
         "id": UUID(ticket_id_str),
         "event_id": payload.event_id,
@@ -74,12 +74,12 @@ async def cancel_ticket(
     ticket_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
-    # 1. Локальный поиск билета
+
     ticket = await crud.get_ticket(db, ticket_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    # 2. Запрос к Events Provider API
+
     async with httpx.AsyncClient(timeout=30.0) as client:
         external_resp = await client.request(
             "DELETE",
@@ -89,7 +89,7 @@ async def cancel_ticket(
         if external_resp.status_code not in (200, 204):
             raise HTTPException(status_code=external_resp.status_code, detail="External cancellation failed")
 
-    # 3. Локальное удаление
+
     await crud.update_seat_availability(db, ticket.seat_id, is_available=True)
     await crud.delete_ticket(db, ticket_id)
     await db.commit()
