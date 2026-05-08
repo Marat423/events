@@ -3,9 +3,14 @@ FROM python:3.11-slim
 RUN addgroup --system --gid 1000 appuser && \
     adduser --system --uid 1000 --ingroup appuser appuser
 
-WORKDIR /app
-COPY --chown=appuser:appuser src/main.py .
+WORKDIR /src
+COPY --chown=appuser:appuser . .
+
+RUN pip install --no-cache-dir uv && \
+    uv sync --frozen
 
 USER appuser
 
-CMD ["python", "main.py"]
+CMD ["uv", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn src.main:app --host 0.0.0.0 --port 8000"]

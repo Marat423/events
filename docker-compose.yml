@@ -1,11 +1,30 @@
-version: '3.9'
-
 services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: events_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d events_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   api:
     build: .
     ports:
       - "8000:8000"
-    volumes:
-      - ./app:/app
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
-      - PYTHONUNBUFFERED=1
+      DATABASE_URL: postgresql://user:pass@db:5432/events_db
+
+
+volumes:
+  postgres_data:

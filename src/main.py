@@ -1,11 +1,29 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-app = FastAPI()
+from src.db.database import Base, engine
+from src.route import events, sync_provider, tickets
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello from uv and FastAPI!"}
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int):
-    return {"item_id": item_id}
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)  # удалить все таблицы
+        await conn.run_sync(Base.metadata.create_all)  # создать заново
+    yield
+    await engine.dispose()
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+# app = FastAPI()
+@app.get("/api/health")
+async def health():
+    return {"status": "ok"}
+
+
+app.include_router(sync_provider.router, prefix="/api")
+app.include_router(events.router, prefix="/api")
+app.include_router(tickets.router, prefix="/api")
