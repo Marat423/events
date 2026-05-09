@@ -8,7 +8,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.database import engine, Base, AsyncSessionLocal, get_db
-from src.route import events, tickets, sync_provider
+from src.route import events, tickets#, sync_provider
 from src.config import settings
 from src.db import models
 from src.services.provider_client import ProviderClient
@@ -69,7 +69,24 @@ async def health():
     return {"status": "ok"}
 
 
+@app.post("/api/sync/trigger")
+async def manual_sync(db: AsyncSession = Depends(get_db)):
+    client = ProviderClient(
+        base_url=settings.CLIENT_HOST,
+        api_key=settings.EVENTS_API_KEY,
+    )
+
+    service = SyncService(db, client)
+
+    count = await service.sync_events_from_provider(
+        changed_at=date(2000, 1, 1)
+    )
+
+    return {
+        "status": "synced",
+        "count": count,
+    }
 
 app.include_router(events.router, prefix="/api")
 app.include_router(tickets.router, prefix="/api")
-app.include_router(sync_provider.router, prefix="/api")
+#app.include_router(sync_provider.router, prefix="/api")
