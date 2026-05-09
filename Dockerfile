@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir uv && \
 
 USER appuser
 
-CMD ["sh", "-c", "uv run alembic upgrade head || true && uv run uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

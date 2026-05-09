@@ -91,27 +91,29 @@ async def get_available_seats(
     event_id: UUID,
     db: AsyncSession = Depends(get_db),
 ):
-
     event = await crud.get_event(db, str(event_id))
+
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    now = time.time()
-    if event_id in _seats_cache and (now - _seats_cache_time.get(event_id, 0)) < 30:
-        return SeatsResponse(event_id=event_id, available_seats=_seats_cache[event_id])
+    if event.status != "published":
+        raise HTTPException(status_code=400, detail="Event is not published")
 
+    result = await db.execute(
+        select(models.Seat)
+        .where(models.Seat.event_id == event_id)
+        .where(models.Seat.is_available == True)
+        .order_by(models.Seat.row, models.Seat.number)
+    )
 
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                f"{settings.CLIENT_HOST}/api/events/{event_id}/seats",
-                headers={"x-api-key": settings.EVENTS_API_KEY}
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            available = data.get("available_seats", [])
-            _seats_cache[event_id] = available
-            _seats_cache_time[event_id] = now
-            return SeatsResponse(event_id=event_id, available_seats=available)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Failed to fetch seats: {str(e)}")
+    seats = result.scalars().all()
+
+    available_seats = [
+        f"{seat.row}{seat.number}"
+        for seat in seats
+    ]
+
+    return SeatsResponse(
+        event_id=event_id,
+        available_seats=available_seats,
+    )

@@ -23,7 +23,6 @@ async def get_place(db: AsyncSession, place_id: str) -> models.Place | None:
     return result.scalar_one_or_none()
 
 
-
 async def get_event(db: AsyncSession, event_id: str) -> models.Event | None:
     result = await db.execute(
         select(models.Event)

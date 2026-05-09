@@ -74,23 +74,27 @@ async def cancel_ticket(
     ticket_id: UUID,
     db: AsyncSession = Depends(get_db)
 ):
-
     ticket = await crud.get_ticket(db, ticket_id)
+
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
-
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         external_resp = await client.request(
             "DELETE",
-            f"{settings.CLIENT_HOST}/api/tickets/{ticket_id}",
-            headers={"x-api-key": settings.EVENTS_API_KEY}
+            f"{settings.CLIENT_HOST.rstrip('/')}/api/events/{ticket.event_id}/unregister/",
+            json={"ticket_id": str(ticket_id)},
+            headers={"x-api-key": settings.EVENTS_API_KEY},
         )
-        if external_resp.status_code not in (200, 204):
-            raise HTTPException(status_code=external_resp.status_code, detail="External cancellation failed")
 
+    if external_resp.status_code not in (200, 204):
+        raise HTTPException(
+            status_code=external_resp.status_code,
+            detail="External cancellation failed",
+        )
 
     await crud.update_seat_availability(db, ticket.seat_id, is_available=True)
     await crud.delete_ticket(db, ticket_id)
     await db.commit()
+
     return CancelTicketResponse(success=True)

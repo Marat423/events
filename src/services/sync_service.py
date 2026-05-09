@@ -2,7 +2,7 @@ from datetime import date, datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import models
@@ -88,13 +88,18 @@ class SyncService:
         return seats
 
     async def sync_event(
-        self, event_data: dict, place_id: str, seats_pattern: str = ""
+            self,
+            event_data: dict,
+            place_id: str,
+            seats_pattern: str = ""
     ) -> models.Event:
         event_id = event_data["id"]
+
         result = await self.db.execute(
             select(models.Event).where(models.Event.id == event_id)
         )
         event = result.scalar_one_or_none()
+
         clean_event = {
             "id": event_id,
             "name": event_data.get("name"),
@@ -109,21 +114,32 @@ class SyncService:
             "status_changed_at": self._to_datetime(event_data.get("status_changed_at")),
             "place_id": place_id,
         }
+
         if not event:
             event = models.Event(**clean_event)
             self.db.add(event)
             await self.db.flush()
-
-            if seats_pattern:
-                seats = self._generate_seats(event.id, seats_pattern)
-                for seat in seats:
-                    self.db.add(seat)
         else:
             for key, value in clean_event.items():
                 setattr(event, key, value)
+            await self.db.flush()
+
+
+        seats_count_result = await self.db.execute(
+            select(func.count())
+            .select_from(models.Seat)
+            .where(models.Seat.event_id == event.id)
+        )
+        seats_count = seats_count_result.scalar() or 0
+
+
+        if seats_pattern and seats_count == 0:
+            seats = self._generate_seats(event.id, seats_pattern)
+
+            for seat in seats:
+                self.db.add(seat)
 
         return event
-
     async def sync_events_from_provider(self, changed_at: date) -> int:
         count = 0
         async for item in self.provider.fetch_all_events(changed_at):

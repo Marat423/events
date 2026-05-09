@@ -25,7 +25,6 @@ async def create_fallback_event(db: AsyncSession) -> int:
         created_at=now,
         changed_at=now,
     )
-
     db.add(place)
     await db.flush()
 
@@ -41,19 +40,7 @@ async def create_fallback_event(db: AsyncSession) -> int:
         changed_at=now,
         status_changed_at=now,
     )
-
     db.add(event)
-    await db.flush()
-
-    for row in ["A", "B"]:
-        for number in range(1, 11):
-            seat = models.Seat(
-                event_id=event.id,
-                row=row,
-                number=number,
-                is_available=True,
-            )
-            db.add(seat)
 
     await db.commit()
     return 1
@@ -76,20 +63,18 @@ async def sync_events(
     except Exception:
         await db.rollback()
         count = await create_fallback_event(db)
-
         return {
             "status": "synced",
             "count": count,
-            "source": "fallback",
+            "source": "fallback_after_provider_error",
         }
 
     if count == 0:
         count = await create_fallback_event(db)
-
         return {
             "status": "synced",
             "count": count,
-            "source": "fallback",
+            "source": "fallback_empty_provider",
         }
 
     return {
