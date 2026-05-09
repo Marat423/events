@@ -1,14 +1,11 @@
 from datetime import date, datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import models
 from src.services.provider_client import ProviderClient
-
-router = APIRouter()
 
 
 class SyncService:
@@ -23,19 +20,21 @@ class SyncService:
                 if dt.tzinfo is not None:
                     dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
                 return dt
-            except:
+            except Exception:
                 return None
         return value
 
     async def sync_place(self, place_data: dict) -> models.Place:
-        place_id = place_data["id"]
+        place_id = UUID(place_data["id"])
+
         result = await self.db.execute(
             select(models.Place).where(models.Place.id == place_id)
         )
         place = result.scalar_one_or_none()
+
         if not place:
             clean_place = {
-                "id": place_data["id"],
+                "id": place_id,
                 "name": place_data["name"],
                 "city": place_data["city"],
                 "address": place_data["address"],
@@ -52,48 +51,63 @@ class SyncService:
             place.seats_pattern = place_data.get("seats_pattern")
             place.changed_at = self._to_datetime(place_data.get("changed_at"))
             place.created_at = self._to_datetime(place_data.get("created_at"))
+
         return place
 
     def _generate_seats(self, event_id: UUID, seats_pattern: str) -> list[models.Seat]:
         seats = []
+
         if not seats_pattern:
             return seats
+
         parts = seats_pattern.split(",")
+
         for part in parts:
             part = part.strip()
+
             if not part:
                 continue
+
             row = part[0]
+
             if "-" not in part:
                 continue
 
             i = 1
             while i < len(part) and part[i].isdigit():
                 i += 1
+
             if i == len(part) or part[i] != "-":
                 continue
+
             start_str = part[1:i]
-            end_str = part[i + 1 :]
+            end_str = part[i + 1:]
+
             try:
                 start = int(start_str)
                 end = int(end_str)
             except ValueError:
                 continue
+
             for num in range(start, end + 1):
                 seats.append(
                     models.Seat(
-                        event_id=event_id, row=row, number=num, is_available=True
+                        event_id=event_id,
+                        row=row,
+                        number=num,
+                        is_available=True,
                     )
                 )
+
         return seats
 
     async def sync_event(
-            self,
-            event_data: dict,
-            place_id: str,
-            seats_pattern: str = ""
+        self,
+        event_data: dict,
+        place_id: UUID,
+        seats_pattern: str = "",
     ) -> models.Event:
-        event_id = event_data["id"]
+        event_id = UUID(event_data["id"])
 
         result = await self.db.execute(
             select(models.Event).where(models.Event.id == event_id)
@@ -122,8 +136,8 @@ class SyncService:
         else:
             for key, value in clean_event.items():
                 setattr(event, key, value)
-            await self.db.flush()
 
+            await self.db.flush()
 
         seats_count_result = await self.db.execute(
             select(func.count())
@@ -132,7 +146,6 @@ class SyncService:
         )
         seats_count = seats_count_result.scalar() or 0
 
-
         if seats_pattern and seats_count == 0:
             seats = self._generate_seats(event.id, seats_pattern)
 
@@ -140,12 +153,18 @@ class SyncService:
                 self.db.add(seat)
 
         return event
+
     async def sync_events_from_provider(self, changed_at: date) -> int:
         count = 0
+
         async for item in self.provider.fetch_all_events(changed_at):
             place = await self.sync_place(item["place"])
             seats_pattern = item["place"].get("seats_pattern", "")
+
             await self.sync_event(item, place.id, seats_pattern)
+
             count += 1
+
         await self.db.commit()
+
         return count

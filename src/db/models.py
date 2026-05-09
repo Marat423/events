@@ -4,7 +4,6 @@ from datetime import datetime
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-
 from src.db.database import Base
 
 
@@ -48,7 +47,7 @@ class Ticket(Base):
     __tablename__ = "tickets"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     event_id = Column(UUID(as_uuid=True), ForeignKey("events.id"), nullable=False)
-    seat_id = Column(UUID(as_uuid=True), ForeignKey("seats.id"), nullable=False)
+    seat_id = Column(UUID(as_uuid=True), ForeignKey("seats.id"), nullable=True)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     email = Column(String, nullable=False)

@@ -1,4 +1,3 @@
-# src/schemas/events.py
 from datetime import datetime
 from uuid import UUID
 

@@ -86,6 +86,45 @@ async def get_event_detail(
 _seats_cache = {}
 _seats_cache_time = {}
 
+
+def generate_seats_from_pattern(seats_pattern: str | None) -> list[str]:
+    seats = []
+
+    if not seats_pattern:
+        return seats
+
+    parts = seats_pattern.split(",")
+
+    for part in parts:
+        part = part.strip()
+
+        if not part or "-" not in part:
+            continue
+
+        row = part[0]
+
+        i = 1
+        while i < len(part) and part[i].isdigit():
+            i += 1
+
+        if i == len(part) or part[i] != "-":
+            continue
+
+        start_str = part[1:i]
+        end_str = part[i + 1:]
+
+        try:
+            start = int(start_str)
+            end = int(end_str)
+        except ValueError:
+            continue
+
+        for number in range(start, end + 1):
+            seats.append(f"{row}{number}")
+
+    return seats
+
+
 @router.get("/{event_id}/seats", response_model=SeatsResponse)
 async def get_available_seats(
     event_id: UUID,
@@ -99,21 +138,38 @@ async def get_available_seats(
     if event.status != "published":
         raise HTTPException(status_code=400, detail="Event is not published")
 
-    result = await db.execute(
-        select(models.Seat)
-        .where(models.Seat.event_id == event_id)
-        .where(models.Seat.is_available == True)
-        .order_by(models.Seat.row, models.Seat.number)
-    )
+    now = time.time()
 
-    seats = result.scalars().all()
+    if event_id in _seats_cache and (now - _seats_cache_time.get(event_id, 0)) < 30:
+        return SeatsResponse(
+            event_id=event_id,
+            available_seats=_seats_cache[event_id],
+        )
 
-    available_seats = [
-        f"{seat.row}{seat.number}"
-        for seat in seats
-    ]
+    available = []
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            resp = await client.get(
+                f"{settings.CLIENT_HOST.rstrip('/')}/api/events/{event_id}/seats/",
+                headers={"x-api-key": settings.EVENTS_API_KEY},
+            )
+
+        if resp.status_code == 200:
+            data = resp.json()
+            available = data.get("available_seats") or data.get("seats") or []
+        else:
+            pattern = event.place.seats_pattern if event.place else None
+            available = generate_seats_from_pattern(pattern)
+
+    except Exception:
+        pattern = event.place.seats_pattern if event.place else None
+        available = generate_seats_from_pattern(pattern)
+
+    _seats_cache[event_id] = available
+    _seats_cache_time[event_id] = now
 
     return SeatsResponse(
         event_id=event_id,
-        available_seats=available_seats,
+        available_seats=available,
     )

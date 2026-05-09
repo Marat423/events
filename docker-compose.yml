@@ -2,9 +2,10 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: events_db
+      DATABASE_URL: postgresql://user:pass@db:5432/events_db
+      CLIENT_HOST: https://student-system-events-provider-web.student-system-events-provider.svc:8000
+      EVENTS_API_KEY: ${EVENTS_API_KEY}
+      PORT: 8000
     ports:
       - "5432:5432"
     volumes:
