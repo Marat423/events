@@ -1,5 +1,6 @@
 import httpx
 from datetime import date
+from urllib.parse import urlparse, parse_qs
 from typing import AsyncGenerator, Dict, Any
 
 class ProviderClient:
@@ -25,7 +26,7 @@ class ProviderClient:
             for item in data.get("results", []):
                 yield item
             if data.get("next"):
-                from urllib.parse import urlparse, parse_qs
+
                 parsed = urlparse(data["next"])
                 cursor = parse_qs(parsed.query).get("cursor", [None])[0]
                 if not cursor:
