@@ -51,10 +51,10 @@ logs/
 .env.*.local
 
 # Project specific
-alembic/versions/*
-!alembic/versions/.gitkeep
-migrations/versions/*
-!migrations/versions/.gitkeep
+migrations/versions/__pycache__/
+migrations/versions/*.pyc
+alembic/versions/__pycache__/
+alembic/versions/*.pyc
 
 # Static & media
 static/
