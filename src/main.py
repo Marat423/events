@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from src.config import settings
 from src.db.database import engine
 from src.route import events, sync_provider, tickets
 from src.services.background_sync import sync_worker
@@ -58,9 +59,12 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/api/debug")
-async def debug():
-    return {"status": "debug route works"}
+@app.get("/api/debug/settings")
+async def debug_settings():
+    return {
+        "client_host": settings.CLIENT_HOST,
+        "has_api_key": bool(settings.EVENTS_API_KEY),
+    }
 
 
 app.include_router(events.router, prefix="/api")
