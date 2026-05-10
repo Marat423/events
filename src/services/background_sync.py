@@ -73,6 +73,7 @@ async def sync_once(changed_at: date | None = None) -> int:
             state = await get_or_create_sync_state(db)
             state.last_sync_time = datetime.now(timezone.utc)
             state.sync_status = "failed"
+
             await db.commit()
 
             logger.exception("Events sync failed")
