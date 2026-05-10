@@ -1,7 +1,7 @@
 from datetime import date, datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import models
@@ -81,7 +81,7 @@ class SyncService:
                 continue
 
             start_str = part[1:i]
-            end_str = part[i + 1:]
+            end_str = part[i + 1 :]
 
             try:
                 start = int(start_str)

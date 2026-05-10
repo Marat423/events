@@ -1,7 +1,8 @@
-from pydantic import BaseModel, ConfigDict
-from uuid import UUID
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
 
 
 class PlaceSchema(BaseModel):
@@ -10,6 +11,7 @@ class PlaceSchema(BaseModel):
     city: str
     address: str
     model_config = ConfigDict(from_attributes=True)
+
 
 class PlaceDetailSchema(PlaceSchema):
     seats_pattern: Optional[str] = None
@@ -25,8 +27,10 @@ class EventSchema(BaseModel):
     number_of_visitors: int
     model_config = ConfigDict(from_attributes=True)
 
+
 class EventDetailSchema(EventSchema):
     place: PlaceDetailSchema
+
 
 class EventListResponse(BaseModel):
     count: int
@@ -47,8 +51,10 @@ class TicketCreateRequest(BaseModel):
     email: str
     seat: str
 
+
 class TicketResponse(BaseModel):
     ticket_id: UUID
+
 
 class CancelTicketResponse(BaseModel):
     success: bool

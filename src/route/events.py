@@ -1,29 +1,37 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload
-from datetime import date, datetime
-from uuid import UUID
-from typing import Optional
-import httpx
 import time
+from datetime import date, datetime
+from typing import Optional
+from uuid import UUID
 
-from src.db.database import get_db
-from src.dependencies.pagination import get_pagination_params, PaginationParams
-from src.schemas.schemas import (
-    EventSchema, EventDetailSchema, EventListResponse, SeatsResponse
-)
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from src import crud
-from src.db import models
 from src.config import settings
+from src.db import models
+from src.db.database import get_db
+from src.dependencies.pagination import PaginationParams, get_pagination_params
+from src.schemas.schemas import (
+    EventDetailSchema,
+    EventListResponse,
+    EventSchema,
+    SeatsResponse,
+)
 
 router = APIRouter(prefix="/events", tags=["events"])
+
 
 @router.get("", response_model=EventListResponse)
 @router.get("/", response_model=EventListResponse, include_in_schema=False)
 async def get_events(
     pagination: PaginationParams = Depends(get_pagination_params),
-    date_from: Optional[date] = Query(None, description="Filter events after given date (YYYY-MM-DD)"),
+    date_from: Optional[date] = Query(
+            None,
+            description="Filter events after given date (YYYY-MM-DD)",
+    ),
     db: AsyncSession = Depends(get_db),
     request: Request = None,
 ):
@@ -33,12 +41,10 @@ async def get_events(
         dt_from = datetime.combine(date_from, datetime.min.time())
         filters.append(models.Event.event_time >= dt_from)
 
-
     total_query = select(func.count()).select_from(models.Event)
     if filters:
         total_query = total_query.where(*filters)
     total = (await db.execute(total_query)).scalar()
-
 
     skip = (pagination.page - 1) * pagination.page_size
     query = select(models.Event).options(selectinload(models.Event.place))
@@ -48,27 +54,33 @@ async def get_events(
     result = await db.execute(query)
     events = result.scalars().all()
 
-
     results = [EventSchema.model_validate(e, from_attributes=True) for e in events]
 
-
-    base_url = str(request.url).split('?')[0]
+    base_url = str(request.url).split("?")[0]
     next_url = None
     prev_url = None
     if pagination.page * pagination.page_size < total:
-        next_url = f"{base_url}?page={pagination.page + 1}&page_size={pagination.page_size}"
+        next_url = (
+            f"{base_url}?page={pagination.page + 1}"
+            f"&page_size={pagination.page_size}"
+        )
     if pagination.page > 1:
-        prev_url = f"{base_url}?page={pagination.page - 1}&page_size={pagination.page_size}"
-    # Если есть date_from, добавить его в ссылки
+        prev_url = (
+            f"{base_url}?page={pagination.page - 1}"
+            f"&page_size={pagination.page_size}"
+        )
+
     if date_from:
-        next_url += f"&date_from={date_from.isoformat()}" if next_url else f"?date_from={date_from.isoformat()}"
-        prev_url += f"&date_from={date_from.isoformat()}" if prev_url else f"?date_from={date_from.isoformat()}"
+        date_param = f"date_from={date_from.isoformat()}"
+
+        if next_url:
+            next_url += f"&{date_param}"
+
+        if prev_url:
+            prev_url += f"&{date_param}"
 
     return EventListResponse(
-        count=total,
-        next=next_url,
-        previous=prev_url,
-        results=results
+        count=total, next=next_url, previous=prev_url, results=results
     )
 
 
@@ -111,7 +123,7 @@ def generate_seats_from_pattern(seats_pattern: str | None) -> list[str]:
             continue
 
         start_str = part[1:i]
-        end_str = part[i + 1:]
+        end_str = part[i + 1 :]
 
         try:
             start = int(start_str)

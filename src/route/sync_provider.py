@@ -1,6 +1,5 @@
-from contextlib import suppress
-from datetime import date
 import logging
+from datetime import date
 
 from fastapi import APIRouter, HTTPException, Query
 

@@ -1,22 +1,31 @@
+from datetime import datetime
+from uuid import UUID
+
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import UUID
-from datetime import datetime
-import httpx
 
-from src.db.database import get_db
 from src import crud
-from src.schemas.schemas import TicketCreateRequest, TicketResponse, CancelTicketResponse
 from src.config import settings
+from src.db.database import get_db
+from src.schemas.schemas import (
+    CancelTicketResponse,
+    TicketCreateRequest,
+    TicketResponse,
+)
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 
 @router.post("", response_model=TicketResponse, status_code=201)
-@router.post("/", response_model=TicketResponse, status_code=201, include_in_schema=False)
+@router.post(
+    "/",
+    response_model=TicketResponse,
+    status_code=201,
+    include_in_schema=False,
+)
 async def register_ticket(
-    payload: TicketCreateRequest,
-    db: AsyncSession = Depends(get_db)
+    payload: TicketCreateRequest, db: AsyncSession = Depends(get_db)
 ):
     event = await crud.get_event(db, str(payload.event_id))
 
@@ -60,7 +69,10 @@ async def register_ticket(
     ticket_id_str = external_data.get("ticket_id")
 
     if not ticket_id_str:
-        raise HTTPException(status_code=502, detail="External API did not return ticket_id")
+        raise HTTPException(
+            status_code=502,
+            detail="External API did not return ticket_id",
+        )
 
     ticket_data = {
         "id": UUID(ticket_id_str),
@@ -78,10 +90,7 @@ async def register_ticket(
 
 
 @router.delete("/{ticket_id}", response_model=CancelTicketResponse)
-async def cancel_ticket(
-    ticket_id: UUID,
-    db: AsyncSession = Depends(get_db)
-):
+async def cancel_ticket(ticket_id: UUID, db: AsyncSession = Depends(get_db)):
     ticket = await crud.get_ticket(db, ticket_id)
 
     if not ticket:

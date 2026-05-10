@@ -9,10 +9,9 @@ down_revision = None
 
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
-
 
 revision: str = "0001_initial_schema"
 down_revision: Union[str, None] = None
@@ -23,7 +22,12 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.create_table(
         "places",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            nullable=False,
+        ),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("city", sa.String(), nullable=False),
         sa.Column("address", sa.String(), nullable=False),
@@ -34,7 +38,12 @@ def upgrade() -> None:
 
     op.create_table(
         "events",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            nullable=False,
+        ),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("event_time", sa.DateTime(timezone=True), nullable=True),
         sa.Column("registration_deadline", sa.DateTime(timezone=True), nullable=True),
@@ -49,7 +58,12 @@ def upgrade() -> None:
 
     op.create_table(
         "seats",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            nullable=False,
+        ),
         sa.Column("event_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("row", sa.String(), nullable=False),
         sa.Column("number", sa.Integer(), nullable=False),
@@ -59,7 +73,12 @@ def upgrade() -> None:
 
     op.create_table(
         "tickets",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            nullable=False,
+        ),
         sa.Column("event_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("seat_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("first_name", sa.String(), nullable=False),

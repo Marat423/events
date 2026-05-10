@@ -1,7 +1,7 @@
 [project]
 name = "eventsaggregator"
 version = "0.1.0"
-description = "Add your description here"
+description = "Events aggregator service"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.136.1",
@@ -13,12 +13,13 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic-settings>=2.14.0",
     "asyncpg>=0.31.0",
-    "dotenv>=0.9.9",
 ]
 
 [dependency-groups]
 dev = [
     "ruff>=0.15.12",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
 ]
 
 [tool.pytest.ini_options]

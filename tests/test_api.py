@@ -1,10 +1,9 @@
 import pytest
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from src.db.database import Base, get_db
 from src.main import app
-from src.db.database import get_db, Base
-
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 

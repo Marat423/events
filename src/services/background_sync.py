@@ -17,9 +17,7 @@ SYNC_INTERVAL_SECONDS = 24 * 60 * 60
 
 
 async def get_or_create_sync_state(db):
-    result = await db.execute(
-        select(models.SyncState).where(models.SyncState.id == 1)
-    )
+    result = await db.execute(select(models.SyncState).where(models.SyncState.id == 1))
     state = result.scalar_one_or_none()
 
     if state is None:
