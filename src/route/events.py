@@ -29,8 +29,8 @@ router = APIRouter(prefix="/events", tags=["events"])
 async def get_events(
     pagination: PaginationParams = Depends(get_pagination_params),
     date_from: Optional[date] = Query(
-            None,
-            description="Filter events after given date (YYYY-MM-DD)",
+        None,
+        description="Filter events after given date (YYYY-MM-DD)",
     ),
     db: AsyncSession = Depends(get_db),
     request: Request = None,
@@ -61,13 +61,11 @@ async def get_events(
     prev_url = None
     if pagination.page * pagination.page_size < total:
         next_url = (
-            f"{base_url}?page={pagination.page + 1}"
-            f"&page_size={pagination.page_size}"
+            f"{base_url}?page={pagination.page + 1}&page_size={pagination.page_size}"
         )
     if pagination.page > 1:
         prev_url = (
-            f"{base_url}?page={pagination.page - 1}"
-            f"&page_size={pagination.page_size}"
+            f"{base_url}?page={pagination.page - 1}&page_size={pagination.page_size}"
         )
 
     if date_from:

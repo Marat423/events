@@ -11,9 +11,9 @@ class ProviderClient:
         self.api_key = api_key
 
     async def fetch_events(
-            self,
-            changed_at: date,
-            cursor: str = None,
+        self,
+        changed_at: date,
+        cursor: str = None,
     ) -> Dict[str, Any]:
         url = f"{self.base_url}/api/events/"
         params = {"changed_at": changed_at.isoformat()}
