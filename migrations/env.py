@@ -30,10 +30,8 @@ def get_database_url() -> str:
 
 
 def run_migrations_offline() -> None:
-    url = get_database_url()
-
     context.configure(
-        url=url,
+        url=get_database_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
