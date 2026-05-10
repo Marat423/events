@@ -19,8 +19,8 @@ from src.config import settings
 
 router = APIRouter(prefix="/events", tags=["events"])
 
-
-@router.get("/", response_model=EventListResponse)
+@router.get("", response_model=EventListResponse)
+@router.get("/", response_model=EventListResponse, include_in_schema=False)
 async def get_events(
     pagination: PaginationParams = Depends(get_pagination_params),
     date_from: Optional[date] = Query(None, description="Filter events after given date (YYYY-MM-DD)"),

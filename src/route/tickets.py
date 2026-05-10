@@ -11,7 +11,9 @@ from src.config import settings
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
-@router.post("/", response_model=TicketResponse, status_code=201)
+
+@router.post("", response_model=TicketResponse, status_code=201)
+@router.post("/", response_model=TicketResponse, status_code=201, include_in_schema=False)
 async def register_ticket(
     payload: TicketCreateRequest,
     db: AsyncSession = Depends(get_db)
