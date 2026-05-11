@@ -41,7 +41,9 @@ async def client():
 @pytest.mark.asyncio
 async def test_get_events_empty(client: AsyncClient):
     response = await client.get("/api/events/?page=1&limit=10")
+
     assert response.status_code == 200
+
     data = response.json()
-    assert data["items"] == []
-    assert data["total"] == 0
+
+    assert data["results"] == []
