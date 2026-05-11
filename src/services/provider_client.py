@@ -71,7 +71,10 @@ class ProviderClient:
                         await asyncio.sleep(2)
                         continue
 
-                    raise
+                    return {
+                        "results": [],
+                        "next": None,
+                    }
 
                 raise
 
@@ -86,7 +89,10 @@ class ProviderClient:
                     await asyncio.sleep(2)
                     continue
 
-                raise
+                return {
+                    "results": [],
+                    "next": None,
+                }
 
         return {
             "results": [],
