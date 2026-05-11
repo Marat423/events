@@ -1,9 +1,14 @@
-from collections.abc import AsyncGenerator
 from datetime import date
-from typing import Any
+from typing import Any, AsyncGenerator, Dict, Optional
 from urllib.parse import parse_qs, urlparse
 
+import asyncio
+import logging
+
 import httpx
+
+
+logger = logging.getLogger(__name__)
 
 
 class ProviderClient:
@@ -14,8 +19,8 @@ class ProviderClient:
     async def fetch_events(
         self,
         changed_at: date,
-        cursor: str | None = None,
-    ) -> dict[str, Any]:
+        cursor: Optional[str] = None,
+    ) -> Dict[str, Any]:
         url = f"{self.base_url}/api/events/"
         params = {"changed_at": changed_at.isoformat()}
 
@@ -24,21 +29,84 @@ class ProviderClient:
 
         headers = {"x-api-key": self.api_key}
 
-        async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
-            response = await client.get(url, params=params, headers=headers)
-            response.raise_for_status()
-            return response.json()
+        for attempt in range(3):
+            try:
+                async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+                    resp = await client.get(url, params=params, headers=headers)
+                    resp.raise_for_status()
 
-    async def fetch_all_events(
-        self,
-        changed_at: date,
-    ) -> AsyncGenerator[dict[str, Any], None]:
+                    data = resp.json()
+
+                    if isinstance(data, list):
+                        return {
+                            "results": data,
+                            "next": None,
+                        }
+
+                    if not isinstance(data, dict):
+                        logger.warning("Unexpected provider response type: %s", type(data))
+                        return {
+                            "results": [],
+                            "next": None,
+                        }
+
+                    return data
+
+            except httpx.HTTPStatusError as exc:
+                status_code = exc.response.status_code
+
+                if status_code in (500, 502, 503, 504):
+                    logger.warning(
+                        "Provider temporary error %s on attempt %s. Url: %s",
+                        status_code,
+                        attempt + 1,
+                        url,
+                    )
+
+                    if attempt < 2:
+                        await asyncio.sleep(2)
+                        continue
+
+                    return {
+                        "results": [],
+                        "next": None,
+                    }
+
+                raise
+
+            except (httpx.ConnectError, httpx.TimeoutException) as exc:
+                logger.warning(
+                    "Provider connection error on attempt %s: %s",
+                    attempt + 1,
+                    exc,
+                )
+
+                if attempt < 2:
+                    await asyncio.sleep(2)
+                    continue
+
+                return {
+                    "results": [],
+                    "next": None,
+                }
+
+        return {
+            "results": [],
+            "next": None,
+        }
+
+    async def fetch_all_events(self, changed_at: date) -> AsyncGenerator[Dict, None]:
         cursor = None
 
         while True:
-            data = await self.fetch_events(changed_at=changed_at, cursor=cursor)
+            data = await self.fetch_events(changed_at, cursor)
 
-            for item in data.get("results", []):
+            results = data.get("results") or []
+
+            if not results:
+                break
+
+            for item in results:
                 yield item
 
             next_url = data.get("next")
