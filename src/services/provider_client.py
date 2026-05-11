@@ -1,12 +1,10 @@
+import asyncio
+import logging
 from datetime import date
 from typing import Any, AsyncGenerator, Dict, Optional
 from urllib.parse import parse_qs, urlparse
 
-import asyncio
-import logging
-
 import httpx
-
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +29,10 @@ class ProviderClient:
 
         for attempt in range(3):
             try:
-                async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+                async with httpx.AsyncClient(
+                    follow_redirects=True,
+                    timeout=30.0,
+                ) as client:
                     resp = await client.get(url, params=params, headers=headers)
                     resp.raise_for_status()
 
@@ -44,7 +45,10 @@ class ProviderClient:
                         }
 
                     if not isinstance(data, dict):
-                        logger.warning("Unexpected provider response type: %s", type(data))
+                        logger.warning(
+                            "Unexpected provider response type: %s",
+                            type(data),
+                        )
                         return {
                             "results": [],
                             "next": None,
