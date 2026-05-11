@@ -14,7 +14,10 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await sync_once()
+    try:
+        await sync_once()
+    except Exception:
+        logger.exception("Initial sync failed")
 
     task = asyncio.create_task(sync_worker())
 
