@@ -42,20 +42,30 @@ class ProviderClient:
                         return {
                             "results": data,
                             "next": None,
+                            "previous": None,
                         }
 
-                    if not isinstance(data, dict):
-                        logger.warning(
-                            "Unexpected provider response type: %s",
-                            type(data),
-                        )
-                        return {
-                            "results": [],
-                            "next": None,
-                        }
+                    if isinstance(data, dict):
+                        if "results" in data:
+                            return data
 
-                    return data
+                        if "id" in data:
+                            return {
+                                "results": [data],
+                                "next": None,
+                                "previous": None,
+                            }
 
+                    logger.warning(
+                        "Unexpected provider response type: %s",
+                        type(data),
+                    )
+
+                    return {
+                        "results": [],
+                        "next": None,
+                        "previous": None,
+                    }
             except httpx.HTTPStatusError as exc:
                 status_code = exc.response.status_code
 
