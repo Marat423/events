@@ -71,10 +71,7 @@ class ProviderClient:
                         await asyncio.sleep(2)
                         continue
 
-                    return {
-                        "results": [],
-                        "next": None,
-                    }
+                    raise
 
                 raise
 
@@ -89,17 +86,17 @@ class ProviderClient:
                     await asyncio.sleep(2)
                     continue
 
-                return {
-                    "results": [],
-                    "next": None,
-                }
+                raise
 
         return {
             "results": [],
             "next": None,
         }
 
-    async def fetch_all_events(self, changed_at: date) -> AsyncGenerator[Dict, None]:
+    async def fetch_all_events(
+        self,
+        changed_at: date,
+    ) -> AsyncGenerator[Dict, None]:
         cursor = None
 
         while True:
