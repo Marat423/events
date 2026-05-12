@@ -16,7 +16,7 @@ RUN chown -R appuser:appuser /app
 
 USER appuser
 
-ENV PATH="/app/.venv/bin:$PATH"
+ENV PATH="/app/.venv/bin:"
 ENV PYTHONPATH="/app"
 
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
