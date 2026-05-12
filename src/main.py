@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from src.db.database import engine
 from src.route import events, sync_provider, tickets
-from src.services.background_sync import sync_once, sync_worker
+from src.services.background_sync import sync_worker
 
 logger = logging.getLogger(__name__)
 
