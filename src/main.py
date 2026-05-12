@@ -5,10 +5,9 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from src.db.database import engine, Base
+from src.db.database import Base, engine
 from src.route import events, sync_provider, tickets
 from src.services.background_sync import sync_worker
-
 
 logger = logging.getLogger(__name__)
 
