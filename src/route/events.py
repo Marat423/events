@@ -1,4 +1,3 @@
-
 import time
 from datetime import date, datetime
 from typing import Optional
@@ -48,9 +47,16 @@ async def get_events(
     total = (await db.execute(total_query)).scalar()
 
     skip = (pagination.page - 1) * pagination.page_size
-    query = select(models.Event).options(selectinload(models.Event.place))
+
+    query = (
+        select(models.Event)
+        .options(selectinload(models.Event.place))
+        .order_by(models.Event.event_time)
+    )
+
     if filters:
         query = query.where(*filters)
+
     query = query.offset(skip).limit(pagination.page_size)
     result = await db.execute(query)
     events = result.scalars().all()
