@@ -87,4 +87,4 @@ async def sync_worker():
         except Exception:
             logger.exception("Background sync failed")
 
-        await asyncio.sleep(SYNC_INTERVAL_SECONDS)
+        await asyncio.sleep(60 * 60 * 24)
