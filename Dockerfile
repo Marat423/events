@@ -4,7 +4,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 ARG EVENTS_API_KEY
-ARG CLIENT_HOST=https://events-provider.dev-2.python-labs.ru
+ARG CLIENT_HOST=https://student-system-events-provider-web.student-system-events-provider.svc:8000
 ARG DATABASE_URL=sqlite+aiosqlite:///./local.db
 
 ENV EVENTS_API_KEY=$EVENTS_API_KEY
