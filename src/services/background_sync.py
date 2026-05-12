@@ -17,7 +17,9 @@ SYNC_INTERVAL_SECONDS = 24 * 60 * 60
 
 
 async def get_or_create_sync_state(db):
-    result = await db.execute(select(models.SyncState).where(models.SyncState.id == 1))
+    result = await db.execute(
+        select(models.SyncState).where(models.SyncState.id == 1)
+    )
     state = result.scalar_one_or_none()
 
     if state is None:
@@ -35,11 +37,22 @@ async def sync_once(changed_at: date | None = None) -> int:
     async with AsyncSessionLocal() as db:
         state = await get_or_create_sync_state(db)
 
+        events_count_query = select(func.count()).select_from(models.Event)
+        events_count = (await db.execute(events_count_query)).scalar() or 0
+
         if changed_at is None:
-            if state.last_changed_at is None:
+            if events_count == 0:
+                changed_at = FIRST_SYNC_DATE
+            elif state.last_changed_at is None:
                 changed_at = FIRST_SYNC_DATE
             else:
                 changed_at = state.last_changed_at.date()
+
+        logger.info(
+            "Starting events sync. changed_at=%s, events_count=%s",
+            changed_at,
+            events_count,
+        )
 
         state.sync_status = "running"
         await db.commit()
@@ -87,4 +100,4 @@ async def sync_worker():
         except Exception:
             logger.exception("Background sync failed")
 
-        await asyncio.sleep(60 * 60 * 24)
+        await asyncio.sleep(SYNC_INTERVAL_SECONDS)
