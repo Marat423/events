@@ -12,6 +12,7 @@ from src.services.background_sync import sync_worker
 logger = logging.getLogger(__name__)
 
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     task = asyncio.create_task(sync_worker())
