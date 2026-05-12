@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from src.services.background_sync import sync_once
 
@@ -12,11 +12,12 @@ logger = logging.getLogger(__name__)
 _sync_task: asyncio.Task | None = None
 
 
-async def run_manual_sync() -> None:
+async def run_sync_safely() -> int:
     try:
-        await sync_once()
+        return await sync_once()
     except Exception:
         logger.exception("Manual sync failed")
+        raise
 
 
 @router.post("/trigger")
@@ -29,9 +30,26 @@ async def trigger_sync():
             "message": "Sync is already running",
         }
 
-    _sync_task = asyncio.create_task(run_manual_sync())
+    _sync_task = asyncio.create_task(run_sync_safely())
+
+    try:
+        count = await asyncio.wait_for(
+            asyncio.shield(_sync_task),
+            timeout=15,
+        )
+    except asyncio.TimeoutError:
+        return {
+            "status": "started",
+            "message": "Sync is still running in background",
+        }
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Sync failed",
+        ) from exc
 
     return {
-        "status": "started",
-        "message": "Sync started in background",
+        "status": "synced",
+        "count": count,
+        "source": "provider",
     }
