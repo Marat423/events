@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from src.db.database import engine
 from src.route import events, sync_provider, tickets
 from src.services.background_sync import sync_worker
+from src.db.database import Base
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,9 @@ async def delayed_sync_worker():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
     task = asyncio.create_task(delayed_sync_worker())
 
     try:

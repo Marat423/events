@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str
+    DATABASE_URL: str = "sqlite+aiosqlite:///./local.db"
     CLIENT_HOST: str = "https://events-provider.dev-2.python-labs.ru"
     EVENTS_API_KEY: str = ""
 
