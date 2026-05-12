@@ -1,17 +1,12 @@
 FROM python:3.11-slim
 
-RUN addgroup --system --gid 1000 appuser && \
-    adduser --system --uid 1000 --ingroup appuser appuser
+WORKDIR /app
 
-WORKDIR /src
+COPY pyproject.toml uv.lock ./
+RUN pip install uv && uv sync
 
-COPY --chown=appuser:appuser . .
+COPY . .
 
-RUN pip install --no-cache-dir uv && \
-    uv sync --frozen
+ENV PYTHONPATH=/app
 
-USER appuser
-
-#CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
-
-CMD ["sh", "-c", "alembic upgrade head && uv run uvicorn src.main:app --host 0.0.0.0"]
+CMD ["sh", "-c", "uv run alembic upgrade head && uv run uvicorn src.main:app --host 0.0.0.0 --port 8000"]

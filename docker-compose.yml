@@ -1,32 +1,23 @@
+version: "3.9"
+
 services:
   db:
     image: postgres:15
+    restart: always
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: events_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: events
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d events_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
-  api:
+  app:
     build: .
+    depends_on:
+      - db
+    env_file:
+      - .env
     ports:
       - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://user:pass@db:5432/events_db
-      CLIENT_HOST: https://events-provider.dev-2.python-labs.ru
-      EVENTS_API_KEY: ${EVENTS_API_KEY}
-      PORT: 8000
-
 volumes:
   postgres_data:
