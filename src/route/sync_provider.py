@@ -1,31 +1,37 @@
+import asyncio
 import logging
-from datetime import date
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter
 
 from src.services.background_sync import sync_once
 
-router = APIRouter()
+router = APIRouter(prefix="/sync", tags=["sync"])
+
 logger = logging.getLogger(__name__)
 
+_sync_task: asyncio.Task | None = None
 
-@router.post("/sync/trigger")
-async def sync_events(
-    changed_at: date = Query(date(2000, 1, 1)),
-):
+
+async def run_manual_sync() -> None:
     try:
-        count = await sync_once(changed_at=changed_at)
+        await sync_once()
+    except Exception:
+        logger.exception("Manual sync failed")
 
+
+@router.post("/trigger")
+async def trigger_sync():
+    global _sync_task
+
+    if _sync_task is not None and not _sync_task.done():
         return {
-            "status": "synced",
-            "count": count,
-            "source": "provider",
+            "status": "already_running",
+            "message": "Sync is already running",
         }
 
-    except Exception as exc:
-        logger.exception("Provider sync failed")
+    _sync_task = asyncio.create_task(run_manual_sync())
 
-        raise HTTPException(
-            status_code=502,
-            detail=f"Provider sync failed: {type(exc).__name__}: {str(exc)}",
-        )
+    return {
+        "status": "started",
+        "message": "Sync started in background",
+    }

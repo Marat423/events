@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from src.db.database import Base, engine
+from src.db.database import engine
 from src.route import events, sync_provider, tickets
 from src.services.background_sync import sync_worker
 
@@ -19,10 +19,7 @@ async def delayed_sync_worker():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    task = asyncio.create_task(delayed_sync_worker())
+    task = asyncio.create_task(sync_worker())
 
     try:
         yield
