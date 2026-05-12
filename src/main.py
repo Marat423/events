@@ -5,20 +5,19 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from src.db.database import engine
+from src.db import models as _models  # noqa: F401
+from src.db.database import Base, engine
 from src.route import events, sync_provider, tickets
 from src.services.background_sync import sync_worker
 
 logger = logging.getLogger(__name__)
 
 
-async def delayed_sync_worker():
-    await asyncio.sleep(10)
-    await sync_worker()
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
     task = asyncio.create_task(sync_worker())
 
     try:
