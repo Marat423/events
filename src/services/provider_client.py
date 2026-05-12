@@ -27,13 +27,27 @@ class ProviderClient:
 
         headers = {"x-api-key": self.api_key}
 
+        last_error: Exception | None = None
+
         for attempt in range(3):
             try:
                 async with httpx.AsyncClient(
                     follow_redirects=True,
-                    timeout=5.0,
+                    timeout=30.0,
                 ) as client:
-                    resp = await client.get(url, params=params, headers=headers)
+                    resp = await client.get(
+                        url,
+                        params=params,
+                        headers=headers,
+                    )
+
+                    logger.info(
+                        "Provider response: status=%s, url=%s, params=%s",
+                        resp.status_code,
+                        url,
+                        params,
+                    )
+
                     resp.raise_for_status()
 
                     data = resp.json()
@@ -66,47 +80,46 @@ class ProviderClient:
                         "next": None,
                         "previous": None,
                     }
+
             except httpx.HTTPStatusError as exc:
+                last_error = exc
                 status_code = exc.response.status_code
 
-                if status_code in (500, 502, 503, 504):
-                    logger.warning(
-                        "Provider temporary error %s on attempt %s. Url: %s",
-                        status_code,
-                        attempt + 1,
-                        url,
-                    )
+                logger.warning(
+                    "Provider HTTP error %s on attempt %s. Url: %s",
+                    status_code,
+                    attempt + 1,
+                    url,
+                )
 
-                    if attempt < 2:
-                        await asyncio.sleep(1)
-                        continue
-
-                    return {
-                        "results": [],
-                        "next": None,
-                    }
+                if status_code in (500, 502, 503, 504) and attempt < 2:
+                    await asyncio.sleep(2)
+                    continue
 
                 raise
 
             except (httpx.ConnectError, httpx.TimeoutException) as exc:
+                last_error = exc
+
                 logger.warning(
-                    "Provider connection error on attempt %s: %s",
+                    "Provider connection/timeout error on attempt %s: %s",
                     attempt + 1,
                     exc,
                 )
 
                 if attempt < 2:
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(2)
                     continue
 
-                return {
-                    "results": [],
-                    "next": None,
-                }
+                raise
+
+        if last_error:
+            raise last_error
 
         return {
             "results": [],
             "next": None,
+            "previous": None,
         }
 
     async def fetch_all_events(
