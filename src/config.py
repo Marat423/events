@@ -2,9 +2,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = ""
-    CLIENT_HOST: str
-    EVENTS_API_KEY: str
+    DATABASE_URL: str
+    CLIENT_HOST: str = "https://events-provider.dev-2.python-labs.ru"
+    EVENTS_API_KEY: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
