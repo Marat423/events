@@ -64,6 +64,10 @@ jobs:
           tags: ghcr.io/${{ steps.repo.outputs.repo }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            EVENTS_API_KEY=${{ secrets.EVENTS_API_KEY }}
+            CLIENT_HOST=https://events-provider.dev-2.python-labs.ru
+            DATABASE_URL=sqlite+aiosqlite:///./local.db
 
   deploy:
     needs: build
