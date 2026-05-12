@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from src.db.database import engine
 from src.route import events, sync_provider, tickets
-from src.services.background_sync import sync_worker
+#from src.services.background_sync import sync_worker
 
 logger = logging.getLogger(__name__)
 
@@ -15,16 +15,9 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(sync_worker())
-
     try:
         yield
     finally:
-        task.cancel()
-
-        with suppress(asyncio.CancelledError):
-            await task
-
         await engine.dispose()
 
 app = FastAPI(lifespan=lifespan)
