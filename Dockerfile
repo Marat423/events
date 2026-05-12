@@ -1,12 +1,11 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+RUN addgroup --system --gid 1000 appuser && \
+    adduser --system --uid 1000 --ingroup appuser appuser
 
-COPY pyproject.toml uv.lock ./
-RUN pip install uv && uv sync
+WORKDIR /src
+COPY --chown=appuser:appuser main.py .
 
-COPY . .
+USER appuser
 
-ENV PYTHONPATH=/app
-
-CMD ["uv", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "main.py"]
