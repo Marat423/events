@@ -31,7 +31,7 @@ class ProviderClient:
             try:
                 async with httpx.AsyncClient(
                     follow_redirects=True,
-                    timeout=30.0,
+                    timeout=5.0,
                 ) as client:
                     resp = await client.get(url, params=params, headers=headers)
                     resp.raise_for_status()
@@ -78,7 +78,7 @@ class ProviderClient:
                     )
 
                     if attempt < 2:
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(1)
                         continue
 
                     return {
@@ -96,7 +96,7 @@ class ProviderClient:
                 )
 
                 if attempt < 2:
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(1)
                     continue
 
                 return {
