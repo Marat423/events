@@ -5,6 +5,8 @@ from uuid import UUID
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -15,7 +17,6 @@ from src.db import models
 from src.db.database import get_db
 from src.schemas.schemas import (
     EventDetailSchema,
-    EventListResponse,
     EventSchema,
     SeatsResponse,
 )
@@ -23,8 +24,8 @@ from src.schemas.schemas import (
 router = APIRouter(prefix="/events", tags=["events"])
 
 
-@router.get("", response_model=EventListResponse)
-@router.get("/", response_model=EventListResponse, include_in_schema=False)
+@router.get("")
+@router.get("/", include_in_schema=False)
 async def get_events(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -103,12 +104,14 @@ async def get_events(
     if page > 1:
         previous_url = f"/api/events?page={page - 1}&" + "&".join(query_params)
 
-    return {
-        "count": total,
+    payload = {
+        "count": int(total),
         "next": next_url,
         "previous": previous_url,
         "results": results,
     }
+
+    return JSONResponse(content=jsonable_encoder(payload))
 
 
 @router.get("/{event_id}", response_model=EventDetailSchema)
