@@ -17,6 +17,7 @@ from src.schemas.schemas import (
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 
+
 @router.post("", response_model=TicketResponse, status_code=201)
 @router.post(
     "/",
@@ -25,9 +26,15 @@ router = APIRouter(prefix="/tickets", tags=["tickets"])
     include_in_schema=False,
 )
 async def register_ticket(
-    payload: TicketCreateRequest, db: AsyncSession = Depends(get_db)
+    payload: TicketCreateRequest,
+    db: AsyncSession = Depends(get_db),
 ):
-    event = await crud.get_event(db, payload.event_id)
+    try:
+        event_id = UUID(payload.event_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid event_id") from exc
+
+    event = await crud.get_event(db, event_id)
 
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -49,7 +56,7 @@ async def register_ticket(
 
     async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
         external_resp = await client.post(
-            f"{settings.CLIENT_HOST.rstrip('/')}/api/events/{payload.event_id}/register/",
+            f"{settings.CLIENT_HOST.rstrip('/')}/api/events/{event_id}/register/",
             json={
                 "first_name": payload.first_name,
                 "last_name": payload.last_name,
@@ -76,7 +83,7 @@ async def register_ticket(
 
     ticket_data = {
         "id": UUID(ticket_id_str),
-        "event_id": payload.event_id,
+        "event_id": event_id,
         "seat_id": None,
         "first_name": payload.first_name,
         "last_name": payload.last_name,

@@ -45,7 +45,7 @@ class SeatsResponse(BaseModel):
 
 
 class TicketCreateRequest(BaseModel):
-    event_id: UUID
+    event_id: str
     first_name: str
     last_name: str
     email: str
