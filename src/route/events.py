@@ -84,9 +84,15 @@ async def get_events(
         if prev_url:
             prev_url += f"&{date_param}"
 
-    return EventListResponse(
-        count=total, next=next_url, previous=prev_url, results=results
-    )
+    return {
+        "count": total,
+        "next": next_url,
+        "previous": prev_url,
+        "results": [
+            event.model_dump(mode="json")
+            for event in results
+        ],
+    }
 
 
 @router.get("/{event_id}", response_model=EventDetailSchema)
