@@ -15,15 +15,15 @@ async def get_events(db: AsyncSession, skip: int = 0, limit: int = 10):
 
 async def count_events(db: AsyncSession) -> int:
     result = await db.execute(select(func.count()).select_from(models.Event))
-    return result.scalar()
+    return result.scalar() or 0
 
 
-async def get_place(db: AsyncSession, place_id: str) -> models.Place | None:
+async def get_place(db: AsyncSession, place_id: UUID) -> models.Place | None:
     result = await db.execute(select(models.Place).where(models.Place.id == place_id))
     return result.scalar_one_or_none()
 
 
-async def get_event(db: AsyncSession, event_id: str) -> models.Event | None:
+async def get_event(db: AsyncSession, event_id: UUID) -> models.Event | None:
     result = await db.execute(
         select(models.Event)
         .options(selectinload(models.Event.place))
@@ -33,7 +33,10 @@ async def get_event(db: AsyncSession, event_id: str) -> models.Event | None:
 
 
 async def get_seat_by_row_number(
-    db: AsyncSession, event_id: UUID, row: str, number: int
+    db: AsyncSession,
+    event_id: UUID,
+    row: str,
+    number: int,
 ) -> models.Seat | None:
     result = await db.execute(
         select(models.Seat)
@@ -52,7 +55,9 @@ async def create_ticket(db: AsyncSession, ticket_data: dict) -> models.Ticket:
 
 
 async def update_seat_availability(
-    db: AsyncSession, seat_id: UUID, is_available: bool
+    db: AsyncSession,
+    seat_id: UUID,
+    is_available: bool,
 ) -> None:
     seat = await db.get(models.Seat, seat_id)
     if seat:

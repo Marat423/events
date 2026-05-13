@@ -94,7 +94,7 @@ async def get_event_detail(
     event_id: UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    event = await crud.get_event(db, str(event_id))
+    event = await crud.get_event(db, event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     return EventDetailSchema.model_validate(event, from_attributes=True)
@@ -147,7 +147,7 @@ async def get_available_seats(
     event_id: UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    event = await crud.get_event(db, str(event_id))
+    event = await crud.get_event(db, event_id)
 
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")

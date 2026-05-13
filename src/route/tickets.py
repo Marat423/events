@@ -27,7 +27,7 @@ router = APIRouter(prefix="/tickets", tags=["tickets"])
 async def register_ticket(
     payload: TicketCreateRequest, db: AsyncSession = Depends(get_db)
 ):
-    event = await crud.get_event(db, str(payload.event_id))
+    event = await crud.get_event(db, payload.event_id)
 
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
