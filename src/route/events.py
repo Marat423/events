@@ -5,7 +5,7 @@ from uuid import UUID
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -27,71 +27,88 @@ router = APIRouter(prefix="/events", tags=["events"])
 @router.get("", response_model=EventListResponse)
 @router.get("/", response_model=EventListResponse, include_in_schema=False)
 async def get_events(
-    pagination: PaginationParams = Depends(get_pagination_params),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    limit: Optional[int] = Query(None, ge=1, le=100),
     date_from: Optional[date] = Query(
         None,
         description="Filter events after given date (YYYY-MM-DD)",
     ),
+    status: Optional[str] = Query(
+        None,
+        description="Filter events by status",
+    ),
     db: AsyncSession = Depends(get_db),
-    request: Request = None,
 ):
+    if limit is not None:
+        page_size = limit
 
     filters = []
+
     if date_from:
         dt_from = datetime.combine(date_from, datetime.min.time())
         filters.append(models.Event.event_time >= dt_from)
 
+    if status:
+        filters.append(models.Event.status == status)
+
     total_query = select(func.count()).select_from(models.Event)
+
     if filters:
         total_query = total_query.where(*filters)
-    total = (await db.execute(total_query)).scalar()
 
-    skip = (pagination.page - 1) * pagination.page_size
+    total = (await db.execute(total_query)).scalar() or 0
+
+    skip = (page - 1) * page_size
+
+    status_order = case(
+        (models.Event.status == "published", 0),
+        else_=1,
+    )
 
     query = (
         select(models.Event)
         .options(selectinload(models.Event.place))
-        .order_by(models.Event.event_time)
+        .order_by(status_order, models.Event.event_time)
     )
 
     if filters:
         query = query.where(*filters)
 
-    query = query.offset(skip).limit(pagination.page_size)
+    query = query.offset(skip).limit(page_size)
+
     result = await db.execute(query)
     events = result.scalars().all()
 
-    results = [EventSchema.model_validate(e, from_attributes=True) for e in events]
+    results = [
+        EventSchema.model_validate(event, from_attributes=True).model_dump(
+            mode="json"
+        )
+        for event in events
+    ]
 
-    base_url = str(request.url).split("?")[0]
-    next_url = None
-    prev_url = None
-    if pagination.page * pagination.page_size < total:
-        next_url = (
-            f"{base_url}?page={pagination.page + 1}&page_size={pagination.page_size}"
-        )
-    if pagination.page > 1:
-        prev_url = (
-            f"{base_url}?page={pagination.page - 1}&page_size={pagination.page_size}"
-        )
+    query_params = [f"page_size={page_size}"]
 
     if date_from:
-        date_param = f"date_from={date_from.isoformat()}"
+        query_params.append(f"date_from={date_from.isoformat()}")
 
-        if next_url:
-            next_url += f"&{date_param}"
+    if status:
+        query_params.append(f"status={status}")
 
-        if prev_url:
-            prev_url += f"&{date_param}"
+    next_url = None
+    previous_url = None
+
+    if page * page_size < total:
+        next_url = f"/api/events?page={page + 1}&" + "&".join(query_params)
+
+    if page > 1:
+        previous_url = f"/api/events?page={page - 1}&" + "&".join(query_params)
 
     return {
         "count": total,
         "next": next_url,
-        "previous": prev_url,
-        "results": [
-            event.model_dump(mode="json")
-            for event in results
-        ],
+        "previous": previous_url,
+        "results": results,
     }
 
 
