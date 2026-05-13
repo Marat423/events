@@ -4,7 +4,7 @@ from typing import Optional
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -13,7 +13,6 @@ from src import crud
 from src.config import settings
 from src.db import models
 from src.db.database import get_db
-from src.dependencies.pagination import PaginationParams, get_pagination_params
 from src.schemas.schemas import (
     EventDetailSchema,
     EventListResponse,
