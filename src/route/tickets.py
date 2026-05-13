@@ -17,7 +17,6 @@ from src.schemas.schemas import (
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 
-
 @router.post("", response_model=TicketResponse, status_code=201)
 @router.post(
     "/",
