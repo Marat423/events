@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import models
 from src.services.provider_client import ProviderClient
-
+from src.services.events_paginator import EventsPaginator
 
 class SyncService:
     def __init__(self, db: AsyncSession, provider_client: ProviderClient):
@@ -157,7 +157,7 @@ class SyncService:
     async def sync_events_from_provider(self, changed_at: date) -> int:
         count = 0
 
-        async for item in self.provider.fetch_all_events(changed_at):
+        async for item in EventsPaginator(self.provider, changed_at):
             place = await self.sync_place(item["place"])
             seats_pattern = item["place"].get("seats_pattern", "")
 

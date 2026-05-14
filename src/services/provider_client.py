@@ -1,31 +1,35 @@
 import asyncio
 import logging
 from datetime import date
-from typing import Any, AsyncGenerator, Dict, Optional
-from urllib.parse import parse_qs, urlparse
+from typing import Any
 
 import httpx
+from urllib.parse import urljoin
 
 logger = logging.getLogger(__name__)
 
 
 class ProviderClient:
     def __init__(self, base_url: str, api_key: str):
-        self.base_url = base_url.rstrip("/")
+        self.base_url = base_url.rstrip("/") + "/"
         self.api_key = api_key
+
+    def _headers(self) -> dict[str, str]:
+        return {"x-api-key": self.api_key}
+
+    def _url(self, path: str) -> str:
+        return urljoin(self.base_url, path.lstrip("/"))
 
     async def fetch_events(
         self,
         changed_at: date,
-        cursor: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        url = f"{self.base_url}/api/events/"
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        url = self._url("api/events/")
         params = {"changed_at": changed_at.isoformat()}
 
         if cursor:
             params["cursor"] = cursor
-
-        headers = {"x-api-key": self.api_key}
 
         last_error: Exception | None = None
 
@@ -35,62 +39,49 @@ class ProviderClient:
                     follow_redirects=True,
                     timeout=30.0,
                 ) as client:
-                    resp = await client.get(
+                    response = await client.get(
                         url,
                         params=params,
-                        headers=headers,
+                        headers=self._headers(),
                     )
 
-                    logger.info(
-                        "Provider response: status=%s, url=%s, params=%s",
-                        resp.status_code,
-                        url,
-                        params,
-                    )
+                logger.info(
+                    "Provider response: status=%s, url=%s, params=%s",
+                    response.status_code,
+                    url,
+                    params,
+                )
 
-                    resp.raise_for_status()
+                response.raise_for_status()
+                data = response.json()
 
-                    data = resp.json()
-
-                    if isinstance(data, list):
-                        return {
-                            "results": data,
-                            "next": None,
-                            "previous": None,
-                        }
-
-                    if isinstance(data, dict):
-                        if "results" in data:
-                            return data
-
-                        if "id" in data:
-                            return {
-                                "results": [data],
-                                "next": None,
-                                "previous": None,
-                            }
-
-                    logger.warning(
-                        "Unexpected provider response type: %s",
-                        type(data),
-                    )
-
+                if isinstance(data, list):
                     return {
-                        "results": [],
+                        "results": data,
                         "next": None,
                         "previous": None,
                     }
 
+                if isinstance(data, dict):
+                    if "results" in data:
+                        return data
+
+                    if "id" in data:
+                        return {
+                            "results": [data],
+                            "next": None,
+                            "previous": None,
+                        }
+
+                return {
+                    "results": [],
+                    "next": None,
+                    "previous": None,
+                }
+
             except httpx.HTTPStatusError as exc:
                 last_error = exc
                 status_code = exc.response.status_code
-
-                logger.warning(
-                    "Provider HTTP error %s on attempt %s. Url: %s",
-                    status_code,
-                    attempt + 1,
-                    url,
-                )
 
                 if status_code in (500, 502, 503, 504) and attempt < 2:
                     await asyncio.sleep(2)
@@ -100,12 +91,6 @@ class ProviderClient:
 
             except (httpx.ConnectError, httpx.TimeoutException) as exc:
                 last_error = exc
-
-                logger.warning(
-                    "Provider connection/timeout error on attempt %s: %s",
-                    attempt + 1,
-                    exc,
-                )
 
                 if attempt < 2:
                     await asyncio.sleep(2)
@@ -122,30 +107,64 @@ class ProviderClient:
             "previous": None,
         }
 
-    async def fetch_all_events(
+    async def fetch_event_seats(self, event_id: str) -> list[str]:
+        url = self._url(f"api/events/{event_id}/seats/")
+
+        async with httpx.AsyncClient(
+            timeout=30.0,
+            follow_redirects=True,
+        ) as client:
+            response = await client.get(url, headers=self._headers())
+
+        response.raise_for_status()
+        data = response.json()
+
+        return data.get("available_seats") or data.get("seats") or []
+
+    async def register_ticket(
         self,
-        changed_at: date,
-    ) -> AsyncGenerator[Dict, None]:
-        cursor = None
+        event_id: str,
+        first_name: str,
+        last_name: str,
+        email: str,
+        seat: str,
+    ) -> dict[str, Any]:
+        url = self._url(f"api/events/{event_id}/register/")
 
-        while True:
-            data = await self.fetch_events(changed_at, cursor)
+        async with httpx.AsyncClient(
+            timeout=30.0,
+            follow_redirects=True,
+        ) as client:
+            response = await client.post(
+                url,
+                json={
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "email": email,
+                    "seat": seat,
+                },
+                headers=self._headers(),
+            )
 
-            results = data.get("results") or []
+        response.raise_for_status()
+        return response.json()
 
-            if not results:
-                break
+    async def unregister_ticket(
+        self,
+        event_id: str,
+        ticket_id: str,
+    ) -> None:
+        url = self._url(f"api/events/{event_id}/unregister/")
 
-            for item in results:
-                yield item
+        async with httpx.AsyncClient(
+            timeout=30.0,
+            follow_redirects=True,
+        ) as client:
+            response = await client.request(
+                "DELETE",
+                url,
+                json={"ticket_id": ticket_id},
+                headers=self._headers(),
+            )
 
-            next_url = data.get("next")
-
-            if not next_url:
-                break
-
-            parsed = urlparse(next_url)
-            cursor = parse_qs(parsed.query).get("cursor", [None])[0]
-
-            if not cursor:
-                break
+        response.raise_for_status()

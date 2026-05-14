@@ -1,13 +1,14 @@
 from datetime import datetime
 from uuid import UUID
 
-import httpx
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src import crud
 from src.config import settings
 from src.db.database import get_db
+from src.services.provider_client import ProviderClient
 from src.schemas.schemas import (
     CancelTicketResponse,
     TicketCreateRequest,
