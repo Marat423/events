@@ -1,21 +1,27 @@
 from datetime import datetime
 from uuid import UUID
 
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src import crud
 from src.config import settings
 from src.db.database import get_db
-from src.services.provider_client import ProviderClient
 from src.schemas.schemas import (
     CancelTicketResponse,
     TicketCreateRequest,
     TicketResponse,
 )
+from src.services.provider_client import ProviderClient
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
+
+
+def get_provider_client() -> ProviderClient:
+    return ProviderClient(
+        base_url=settings.CLIENT_HOST,
+        api_key=settings.EVENTS_API_KEY,
+    )
 
 
 @router.post("", response_model=TicketResponse, status_code=201)
@@ -52,27 +58,27 @@ async def register_ticket(
     )
 
     if now > event.registration_deadline:
-        raise HTTPException(status_code=400, detail="Registration deadline has passed")
-
-    async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-        external_resp = await client.post(
-            f"{settings.CLIENT_HOST.rstrip('/')}/api/events/{event_id}/register/",
-            json={
-                "first_name": payload.first_name,
-                "last_name": payload.last_name,
-                "email": payload.email,
-                "seat": payload.seat,
-            },
-            headers={"x-api-key": settings.EVENTS_API_KEY},
-        )
-
-    if external_resp.status_code not in (200, 201):
         raise HTTPException(
-            status_code=external_resp.status_code,
-            detail=external_resp.text,
+            status_code=400,
+            detail="Registration deadline has passed",
         )
 
-    external_data = external_resp.json()
+    provider_client = get_provider_client()
+
+    try:
+        external_data = await provider_client.register_ticket(
+            event_id=str(event_id),
+            first_name=payload.first_name,
+            last_name=payload.last_name,
+            email=payload.email,
+            seat=payload.seat,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="External registration failed",
+        ) from exc
+
     ticket_id_str = external_data.get("ticket_id")
 
     if not ticket_id_str:
@@ -97,28 +103,34 @@ async def register_ticket(
 
 
 @router.delete("/{ticket_id}", response_model=CancelTicketResponse)
-async def cancel_ticket(ticket_id: UUID, db: AsyncSession = Depends(get_db)):
+async def cancel_ticket(
+    ticket_id: UUID,
+    db: AsyncSession = Depends(get_db),
+):
     ticket = await crud.get_ticket(db, ticket_id)
 
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        external_resp = await client.request(
-            "DELETE",
-            f"{settings.CLIENT_HOST.rstrip('/')}/api/events/{ticket.event_id}/unregister/",
-            json={"ticket_id": str(ticket_id)},
-            headers={"x-api-key": settings.EVENTS_API_KEY},
-        )
+    provider_client = get_provider_client()
 
-    if external_resp.status_code not in (200, 204):
-        raise HTTPException(
-            status_code=external_resp.status_code,
-            detail="External cancellation failed",
+    try:
+        await provider_client.unregister_ticket(
+            event_id=str(ticket.event_id),
+            ticket_id=str(ticket_id),
         )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="External cancellation failed",
+        ) from exc
 
     if ticket.seat_id:
-        await crud.update_seat_availability(db, ticket.seat_id, is_available=True)
+        await crud.update_seat_availability(
+            db,
+            ticket.seat_id,
+            is_available=True,
+        )
 
     await crud.delete_ticket(db, ticket_id)
     await db.commit()
