@@ -5,8 +5,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db import models
-from src.services.provider_client import ProviderClient
 from src.services.events_paginator import EventsPaginator
+from src.services.provider_client import ProviderClient
+
 
 class SyncService:
     def __init__(self, db: AsyncSession, provider_client: ProviderClient):

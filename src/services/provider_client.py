@@ -2,9 +2,9 @@ import asyncio
 import logging
 from datetime import date
 from typing import Any
+from urllib.parse import urljoin
 
 import httpx
-from urllib.parse import urljoin
 
 logger = logging.getLogger(__name__)
 
