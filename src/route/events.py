@@ -9,15 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
 from src.db.database import get_db
-from src.services.event_service import EventService
-from src.services.provider_client import ProviderClient
 from src.schemas.schemas import (
     EventDetailSchema,
-    EventSchema,
     EventStatus,
     SeatsResponse,
 )
-
+from src.services.event_service import EventService
+from src.services.provider_client import ProviderClient
 
 router = APIRouter(prefix="/events", tags=["events"])
 
