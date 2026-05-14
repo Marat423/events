@@ -40,7 +40,6 @@ class EventDetailSchema(EventSchema):
     place: PlaceDetailSchema
 
 
-
 class EventListResponse(BaseModel):
     count: int
     next: Optional[str] = None

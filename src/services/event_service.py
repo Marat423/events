@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.db import models
-from src.schemas.schemas import EventSchema
+from src.schemas.schemas import EventSchema, EventStatus
 from src.services.provider_client import ProviderClient
 
 
@@ -44,7 +44,7 @@ class EventService:
         skip = (page - 1) * page_size
 
         status_order = case(
-            (models.Event.status == "published", 0),
+            (models.Event.status == EventStatus.PUBLISHED.value, 0),
             else_=1,
         )
 
