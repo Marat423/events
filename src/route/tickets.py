@@ -9,6 +9,7 @@ from src.config import settings
 from src.db.database import get_db
 from src.schemas.schemas import (
     CancelTicketResponse,
+    EventStatus,
     TicketCreateRequest,
     TicketResponse,
 )
@@ -45,7 +46,7 @@ async def register_ticket(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    if event.status != "published":
+    if event.status != EventStatus.PUBLISHED.value:
         raise HTTPException(
             status_code=400,
             detail="Registration is only allowed for published events",

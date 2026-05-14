@@ -9,9 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import settings
 from src.db.database import get_db
-from src.schemas.schemas import EventDetailSchema, SeatsResponse
 from src.services.event_service import EventService
 from src.services.provider_client import ProviderClient
+from src.schemas.schemas import (
+    EventDetailSchema,
+    EventSchema,
+    EventStatus,
+    SeatsResponse,
+)
+
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -76,7 +82,7 @@ async def get_available_seats(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    if event.status != "published":
+    if event.status != EventStatus.PUBLISHED.value:
         raise HTTPException(status_code=400, detail="Event is not published")
 
     available = await service.get_available_seats(event)
