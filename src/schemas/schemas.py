@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
-
+from enum import Enum
 from pydantic import BaseModel, ConfigDict
 
 
@@ -17,19 +17,27 @@ class PlaceDetailSchema(PlaceSchema):
     seats_pattern: Optional[str] = None
 
 
+class EventStatus(str, Enum):
+    PUBLISHED = "published"
+    REGISTRATION_CLOSED = "registration_closed"
+    FINISHED = "finished"
+    CANCELLED = "cancelled"
+
+
 class EventSchema(BaseModel):
     id: UUID
     name: str
     place: PlaceSchema
     event_time: datetime
     registration_deadline: datetime
-    status: str
+    status: EventStatus
     number_of_visitors: int
     model_config = ConfigDict(from_attributes=True)
 
 
 class EventDetailSchema(EventSchema):
     place: PlaceDetailSchema
+
 
 
 class EventListResponse(BaseModel):
