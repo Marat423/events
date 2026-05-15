@@ -122,18 +122,18 @@ class ProviderClient:
         return data.get("available_seats") or data.get("seats") or []
 
     async def register_ticket(
-            self,
-            event_id: str,
-            first_name: str,
-            last_name: str,
-            email: str,
-            seat: str,
+        self,
+        event_id: str,
+        first_name: str,
+        last_name: str,
+        email: str,
+        seat: str,
     ) -> dict[str, Any]:
         url = self._url(f"api/events/{event_id}/register/")
 
         async with httpx.AsyncClient(
-                timeout=30.0,
-                follow_redirects=False,
+            timeout=30.0,
+            follow_redirects=False,
         ) as client:
             response = await client.post(
                 url,
@@ -150,15 +150,15 @@ class ProviderClient:
         return response.json()
 
     async def unregister_ticket(
-            self,
-            event_id: str,
-            ticket_id: str,
+        self,
+        event_id: str,
+        ticket_id: str,
     ) -> None:
         url = self._url(f"api/events/{event_id}/unregister/")
 
         async with httpx.AsyncClient(
-                timeout=30.0,
-                follow_redirects=False,
+            timeout=30.0,
+            follow_redirects=False,
         ) as client:
             response = await client.request(
                 "DELETE",

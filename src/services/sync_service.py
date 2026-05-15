@@ -166,6 +166,7 @@ class SyncService:
 
             count += 1
 
-        await self.db.commit()
+        if count % 20 == 0:
+            await self.db.commit()
 
         return count
