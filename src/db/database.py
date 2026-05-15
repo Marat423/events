@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -14,7 +15,30 @@ elif raw_url.startswith("postgres://"):
 else:
     async_url = raw_url
 
-engine = create_async_engine(async_url, echo=False)
+engine_kwargs = {
+    "echo": False,
+}
+
+if async_url.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {
+        "timeout": 30,
+    }
+
+engine = create_async_engine(async_url, **engine_kwargs)
+
+
+if async_url.startswith("sqlite"):
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA busy_timeout=30000")
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+
 AsyncSessionLocal = sessionmaker(
     engine,
     class_=AsyncSession,
