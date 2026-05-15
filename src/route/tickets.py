@@ -1,6 +1,6 @@
-from datetime import datetime
 from uuid import UUID
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -52,18 +52,6 @@ async def register_ticket(
             detail="Registration is only allowed for published events",
         )
 
-    now = (
-        datetime.now(event.registration_deadline.tzinfo)
-        if event.registration_deadline.tzinfo
-        else datetime.utcnow()
-    )
-
-    if now > event.registration_deadline:
-        raise HTTPException(
-            status_code=400,
-            detail="Registration deadline has passed",
-        )
-
     provider_client = get_provider_client()
 
     try:
@@ -74,10 +62,24 @@ async def register_ticket(
             email=payload.email,
             seat=payload.seat,
         )
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "message": "External registration failed",
+                "provider_status": exc.response.status_code,
+                "provider_body": exc.response.text,
+                "provider_url": str(exc.request.url),
+            },
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=502,
-            detail="External registration failed",
+            detail={
+                "message": "External registration failed",
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+            },
         ) from exc
 
     ticket_id_str = external_data.get("ticket_id")
@@ -120,10 +122,24 @@ async def cancel_ticket(
             event_id=str(ticket.event_id),
             ticket_id=str(ticket_id),
         )
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "message": "External cancellation failed",
+                "provider_status": exc.response.status_code,
+                "provider_body": exc.response.text,
+                "provider_url": str(exc.request.url),
+            },
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=502,
-            detail="External cancellation failed",
+            detail={
+                "message": "External cancellation failed",
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+            },
         ) from exc
 
     if ticket.seat_id:

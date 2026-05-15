@@ -43,9 +43,16 @@ class EventService:
         total = (await self.db.execute(total_query)).scalar() or 0
         skip = (page - 1) * page_size
 
+        now = datetime.utcnow()
+
         status_order = case(
-            (models.Event.status == EventStatus.PUBLISHED.value, 0),
-            else_=1,
+            (
+                (models.Event.status == EventStatus.PUBLISHED.value)
+                & (models.Event.registration_deadline >= now),
+                0,
+            ),
+            (models.Event.status == EventStatus.PUBLISHED.value, 1),
+            else_=2,
         )
 
         query = (
