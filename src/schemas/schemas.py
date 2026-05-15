@@ -40,13 +40,6 @@ class EventDetailSchema(EventSchema):
     place: PlaceDetailSchema
 
 
-class EventListResponse(BaseModel):
-    count: int
-    next: Optional[str] = None
-    previous: Optional[str] = None
-    results: List[EventSchema]
-
-
 class SeatsResponse(BaseModel):
     event_id: UUID
     available_seats: List[str]
@@ -66,14 +59,3 @@ class TicketResponse(BaseModel):
 
 class CancelTicketResponse(BaseModel):
     success: bool
-
-
-class SourceCreate(BaseModel):
-    name: str
-    base_url: str
-    api_key: str
-
-
-class SourceResponse(SourceCreate):
-    id: str
-    is_active: bool
