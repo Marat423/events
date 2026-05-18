@@ -61,12 +61,17 @@ def start_background_sync() -> None:
         _sync_task = asyncio.create_task(run_sync_safely())
 
 
-@router.post("/trigger")
+@router.post("/trigger", status_code=202)
 async def trigger_sync():
     events_count = await get_events_count()
 
     if events_count == 0:
-        initial_count = await preload_first_events_page()
+        try:
+            initial_count = await preload_first_events_page()
+        except Exception:
+            logger.exception("Initial preload failed")
+            initial_count = 0
+
         start_background_sync()
 
         return {
