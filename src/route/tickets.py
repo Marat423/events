@@ -72,6 +72,13 @@ async def register_ticket(
                 "provider_url": str(exc.request.url),
             },
         ) from exc
+
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=504,
+            detail="Provider timeout",
+        )
+
     except Exception as exc:
         raise HTTPException(
             status_code=502,
@@ -132,6 +139,13 @@ async def cancel_ticket(
                 "provider_url": str(exc.request.url),
             },
         ) from exc
+
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=504,
+            detail="Provider timeout",
+        )
+
     except Exception as exc:
         raise HTTPException(
             status_code=502,

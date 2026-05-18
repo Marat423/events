@@ -132,7 +132,7 @@ class ProviderClient:
         url = self._url(f"api/events/{event_id}/register/")
 
         async with httpx.AsyncClient(
-            timeout=30.0,
+            timeout=10.0,
             follow_redirects=False,
         ) as client:
             response = await client.post(
@@ -157,7 +157,7 @@ class ProviderClient:
         url = self._url(f"api/events/{event_id}/unregister/")
 
         async with httpx.AsyncClient(
-            timeout=30.0,
+            timeout=10.0,
             follow_redirects=False,
         ) as client:
             response = await client.request(
